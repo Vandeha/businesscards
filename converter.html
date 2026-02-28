@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone-Optimized vCard Converter</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 40px; background: #f0f0f5; color: #333; text-align: center; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        input { margin: 20px 0; }
+        canvas { display: none; } /* Hidden processing tool */
+        textarea { width: 100%; height: 120px; font-family: monospace; font-size: 11px; margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+        .preview-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 15px auto; display: none; border: 3px solid #007AFF; }
+        .btn { background: #007AFF; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Logo-to-vCard Converter</h2>
+    <p>Upload your logo/photo. It will be auto-resized to 200x200px for iPhone compatibility.</p>
+    
+    <input type="file" id="upload" accept="image/*">
+    <img id="preview" class="preview-img">
+    <canvas id="canvas" width="200" height="200"></canvas>
+    
+    <textarea id="output" readonly placeholder="Base64 code will appear here..."></textarea>
+    <button id="copyBtn" class="btn">Copy vCard Code</button>
+</div>
+
+<script>
+    const upload = document.getElementById('upload');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const output = document.getElementById('output');
+    const preview = document.getElementById('preview');
+    const copyBtn = document.getElementById('copyBtn');
+
+    upload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                // Clear canvas with white background (prevents black boxes on transparent PNGs)
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, 200, 200);
+
+                // Calculate aspect ratio to center and crop the image
+                const scale = Math.max(200 / img.width, 200 / img.height);
+                const x = (200 - img.width * scale) / 2;
+                const y = (200 - img.height * scale) / 2;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+                // Convert to JPEG Base64 (Quality 0.8 is perfect for contacts)
+                const dataURL = canvas.toDataURL("image/jpeg", 0.8);
+                const base64Clean = dataURL.split(',')[1];
+                
+                output.value = "PHOTO;TYPE=JPEG;ENCODING=b:" + base64Clean;
+                preview.src = dataURL;
+                preview.style.display = 'block';
+                copyBtn.style.display = 'inline-block';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    copyBtn.addEventListener('click', () => {
+        output.select();
+        document.execCommand('copy');
+        alert('Optimized code copied! Paste this into your .vcf file.');
+    });
+</script>
+
+</body>
+</html>
